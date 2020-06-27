@@ -1,50 +1,23 @@
----
-title: "Exam2"
-author: "Rohin Balkundi"
-date: "6/26/2020"
-output: word_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 ### 1. Clearing the environment in R
-```{r}
 rm(list=ls(all=TRUE))
-```
-### 2. Importing the dataset
-```{r, warning=FALSE}
+
+##2. Loading the dataset 
 library(rio)
 inequality_data = import("inequality.xlsx")
-```
-### 3.Is the data a cross sectional or panel dataset?
-The dataset is a cross sectional dataset since all the data is collecting from a specific year (2015), this was confirmed when taking a quick peek at the data
-```{r, echo=FALSE}
+
+### 3. checking for panel vs cross sectional
 head(inequality_data)
-```
-### 4.Providing the scores for Denmark and Sweden
-```{r}
+
+### 4. Providing the subset command for denmark and sweeden
 subset(inequality_data, country == "Denmark"| country == "Sweden")
-```
-The scores are 28.2 and 29.2 for Denmark and Swweden respectively.
 
-### 5.Score for Brazil
-```{r}
+#### 5. Providing the score for brazil
 subset(inequality_data, country == "Brazil")
-```
-As seen above, the score for Brazil is 51.9
 
-### 6. Higher or lower inequality gini score?
-It is better to have a lower inequality gini score since that way the distribution of income is more central and overall would lead to less equality.
-
-### 7. Quick Peek at the data frame
-```{r}
+### 7. Quick peek at the data frame
 head(inequality_data)
-```
-### 8.Writing the command
-Writing the command
-```{r}
-#writing a command to remove the accent
+
+# 8. writing a command to remove the accent
 accent.remove <- function(x){
   ##for 1 character substitutions
   old1 <- "ú"
@@ -52,86 +25,57 @@ accent.remove <- function(x){
   ###use chartr to make the replacements
   s1 <- chartr(old1,new1,x)
 }
-```
-Running the command on the country column
-```{r}
 ##Running the command on the country column 
 inequality_data$country=accent.remove(inequality_data$country)
-
-```
-Checking the data to ensure the accent is gone
-```{r}
 ###Checking the data 
 head(inequality_data)
-```
-
-### 9. Sort the data and run the head command again
-```{r}
 
 ####9. sort the gini score
 inequality_data=inequality_data[order(inequality_data$inequality_gini),]
       ## Check the head to see the top 5 countries
       head(inequality_data)
-```
-### 10. find the mean inequality_gini score
-```{r}
-### Mean gini  score
+
+### 10. Mean gini  score
       mean(inequality_data$inequality_gini, na.rm=TRUE) ##Noticed there were NA's in the dataset
-```
-### 11. Using ifelse to create dummy variables
-```{r, echo=TRUE, results='hide'}
-##Creating the variable
+
+# 11. using if else to create dummy varables
+##Creating the variable high inequality
 inequality_data$high_inequality = "NA"
-# using ifelse to fill the column in
 inequality_data$high_inequality =ifelse(test = inequality_data$inequality_gini > 36.81375, yes = 1, no = 0)
 
-
 #Creating the variable low inequality
+
 inequality_data$low_inequality = "NA"
 inequality_data$low_inequality =ifelse(test = inequality_data$inequality_gini > 36.81375, yes = 0, no = 1)
 
+# 12. run a crosstab
+  # Load doby
+  library(doBy)
+  #Run the cross tab
+  summaryBy(inequality_gini ~ high_inequality, data=inequality_data, FUN=c(mean,length))
 
-```
-### 12. Run a cross tab
-```{r}
-# Load doby
-library(doBy)
-#Run the cross tab
-summaryBy(inequality_gini ~ high_inequality, data=inequality_data, FUN=c(mean,length))
-```
-### 13. Creating a loop to print names
-```{r}
-#Creating an organization vector 
+# 13. run a for loop that prints names
+  #Creating an organization vector 
   orgs <- c('World Bank','African Development Bank','Bill and Melinda Gates foundation')
  #Creating the loop to print the orgs
    for (i in orgs){
     print(i)
-  }
-```
-### 14. Choose a variable
-I chose the poverty headcount ratio  at $1.90 a day, I think it is a good measure of inequality since it would show how the level of poverty in a region relative to the purchasing power parity of 1.90 a day and would give me a percentage.
-
-### 15. Import the Variable
-```{r}
-#Loading WDI
+   }
+# 14
+# 15 import the variable
 library(WDI)
 poverty_data = WDI(country= "all",
-                   indicator = c("SI.POV.DDAY"), ## name of the indicator
-                   start = 2015, end = 2015, extra = FALSE, cache = NULL) ##want it to be 2015 since the other data is 2015 as well
-```
-### 16. Rename the Variable
-```{r}
-#Load
-library(data.table) #loading data table
-setnames(poverty_data,"SI.POV.DDAY","Poverty_headcount_ratio") ## Renaming
-head(poverty_data) #checking to make sure it goes through
-```
-### 17. Merge
-```{r, results='hide'}
+                   indicator = c("SI.POV.DDAY"),
+                   start = 2015, end = 2015, extra = FALSE, cache = NULL)
+
+# 16 rename the variable
+library(data.table)
+setnames(poverty_data,"SI.POV.DDAY","Poverty_headcount_ratio")  
+head(poverty_data)
+
+##17. Merge 
 ## want to do a left join so X can keep all of its rows
 library(tidyverse)
-```
-```{r}
 merged_df = left_join(x= inequality_data,
                       y= poverty_data,
                       by = c("iso2c","year") #used iso2c since both datasets had them
@@ -154,38 +98,27 @@ merged_df$countries_match = NULL
 ## take a peak at the data to make sure its correct
 head(merged_df)
 
-```
-
-### 18.Remove the NA's
-```{r}
 ###18. Remove NA's 
 merged_df <- na.omit(merged_df, select = c("inequality_gini", "Poverty_headcount_ratio"))
 ### check for NA
 is.na(merged_df$inequality_gini)
 is.na(merged_df$Poverty_headcount_ratio)
-```
 
-### 19 Filter for greater than 30
-```{r}
+### 19. filter and piping 
 library(tidyverse)
 data_greater_30 <-
   merged_df %>% 
   dplyr::filter((inequality_gini > 30)) ###Filter out any of these that have a gini score lower than 30
   # quick check to make sure they are greater than 30
   head(data_greater_30)
-```
-
-### 20. count how many countries have the sequence "ai" in it
-```{r}
-### counting the number of "ai" in countries
+  
+  
+### 20. counting the number of "ai" in countries
 length(grep("ai",data_greater_30$country))
-```
-### 21.take the sum of inequality gini)
-```{r}
+
+### 21. use any command from the apply to take the sum of inequality_gini
 sum(sapply(data_greater_30$inequality_gini, sum))
-```
-### 22.rename the variables 
-```{r}
+### 22. rename the variables
 library(labelled)
 var_label(merged_df) <- list(`country` = "Country",
                              `year` = "year",
@@ -194,21 +127,8 @@ var_label(merged_df) <- list(`country` = "Country",
                              `low_inequality` = "Dummy Variable if the Gini score is lower than the mean",
                              `iso2c`= "ISO-2 Country Code",
                              `Poverty_headcount_ratio` = "Poverty Headcount Ratio")
-```
-### 23. export
-```{r}
+
 ### 23, save merged df as a stata fle 
 library(rio)
 export(merged_df, file = "final_data.dta")
-
-```
-### 24 push on github will be on canvas.
-
-
-
-
-
-
-
-
-
+                             
